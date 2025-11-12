@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>智能平行板电容器电场与电容交互系统</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1/lib/p5.min.js"></script>
+  <style>
+    .layout { display: flex; gap: 30px; padding: 20px; }
+    .control-panel { width: 350px; }
+    .slider-group { margin: 15px 0; }
+    label { display: block; margin-bottom: 5px; }
+    .result-card { background: #f0f8ff; padding: 15px; border-radius: 8px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>智能平行板电容器电场与电容交互系统</h1>
+  <div class="layout">
+    <div class="control-panel">
+      <div class="slider-group">
+        <label>极板带电量 \( Q \)（单位：\( 10^{-9}\text{C} \)）</label>
+        <input type="range" id="charge" min="5" max="150" value="75" class="slider">
+        <span id="charge-display">75</span>
+      </div>
+      <div class="slider-group">
+        <label>极板间距 \( d \)（单位：\( \text{mm} \)）</label>
+        <input type="range" id="distance" min="2" max="30" value="10" class="slider">
+        <span id="distance-display">10</span>
+      </div>
+      <div class="slider-group">
+        <label>极板面积 \( S \)（单位：\( \text{cm}^2 \)）</label>
+        <input type="range" id="area" min="20" max="300" value="150" class="slider">
+        <span id="area-display">150</span>
+      </div>
+      <div class="slider-group">
+        <label>介电质类型</label>
+        <select id="dielectric">
+          <option value="1">空气（\( \varepsilon_r = 1 \)）</option>
+          <option value="3">橡胶（\( \varepsilon_r = 3 \)）</option>
+          <option value="6">云母（\( \varepsilon_r = 6 \)）</option>
+        </select>
+      </div>
+      <div class="result-card">
+        <h3>实时物理量计算</h3>
+        <p>电场强度 \( E \)：<span id="e-result">--</span> \( \text{V/m} \)</p>
+        <p>电容值 \( C \)：<span id="c-result">--</span> \( \text{pF} \)</p>
+      </div>
+    </div>
+    <div id="visualization"></div>
+  </div>
+
+  <script>
+    let chargeSlider, distanceSlider, areaSlider, dielectricSelect;
+    let chargeDisp, distanceDisp, areaDisp;
+    const ε0 = 8.85e-12; // 真空介电常数，F/m
+
+    function setup() {
+      createCanvas(650, 450).parent('visualization');
+      chargeSlider = select('#charge');
+      distanceSlider = select('#distance');
+      areaSlider = select('#area');
+      dielectricSelect = select('#dielectric');
+      chargeDisp = select('#charge-display');
+      distanceDisp = select('#distance-display');
+      areaDisp = select('#area-display');
+      
+      // 绑定参数变化事件
+      chargeSlider.input(updateParams);
+      distanceSlider.input(updateParams);
+      areaSlider.input(updateParams);
+      dielectricSelect.changed(updateParams);
+      updateParams();
+    }
+
+    function updateParams() {
+      // 更新参数显示
+      chargeDisp.html(chargeSlider.value());
+      distanceDisp.html(distanceSlider.value());
+      areaDisp.html(areaSlider.value());
+      const εr = parseFloat(dielectricSelect.value());
+      
+      // 单位转换与物理量计算
+      const Q = parseFloat(chargeSlider.value()) * 1e-9; // 转换为库仑
+      const d = parseFloat(distanceSlider.value()) * 1e-3; // 转换为米
+      const S = parseFloat(areaSlider.value()) * 1e-4; // 转换为平方米
+      
+      const E = Q / (ε0 * S); // 电场强度
+      const C = (εr * ε0 * S) / d; // 电容
+      
+      // 更新结果显示
+      select('#e-result').html(E.toExponential(2));
+      select('#c-result').html((C * 1e12).toFixed(2)); // 转换为pF
+    }
+
+    function draw() {
+      background(255);
+      const d = parseFloat(distanceSlider.value()) * 12; // 可视化间距缩放
+      const S = parseFloat(areaSlider.value()) * 2.5; // 可视化面积缩放
+      const Q = parseFloat(chargeSlider.value());
+      
+      // 绘制极板
+      fill(255, 140, 0); // 左极板（正电，橙色区分）
+      rect(120, height/2 - S/2, 12, S);
+      fill(0, 128, 255); // 右极板（负电，蓝色区分）
+      rect(120 + 60 + d, height/2 - S/2, 12, S);
+      
+      // 绘制电场线（数量与带电量Q线性相关）
+      stroke(100, 100, 255);
+      strokeWeight(1.2);
+      const lineCount = Math.floor(Q / 6); // 电场线数量动态调整
+      for (let i = 0; i < lineCount; i++) {
+        const y = height/2 - S/2 + (i * S) / lineCount;
+        line(132, y, 120 + 60 + d, y);
+      }
+      
+      // 标注与说明
+      fill(0);
+      textSize(14);
+      text('正极板', 110, height/2 - S/2 - 15);
+      text('负极板', 120 + 60 + d - 30, height/2 - S/2 - 15);
+      text('极板间距: ' + distanceSlider.value() + 'mm', 280, 60);
+    }
+  </script>
+</body>
+</html>
